@@ -59,7 +59,7 @@ Add public key within setup.yml
 7. Installs ctop for Docker container monitoring
 8. Generates an SSH key for the root user
 
-### Example: Git Pull from Gitlab 
+### Example: Git Pull from Gitlab with Personal Access Token
 ```
 https://gitlab.com/-/user_settings/personal_access_tokens
 git clone https://<username>:<access_token>@gitlab.com/<username>/<repository>.git
