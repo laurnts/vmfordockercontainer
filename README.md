@@ -2,9 +2,10 @@
 
 This Ansible playbook automates the setup of an Ubuntu VM with Docker, enhanced security settings, and useful tools. It's designed to be idempotent and can be rerun for updates.
 
-## First!! Add Your Public Key!
+## First, Add your public key with setup.yml!
 ```
-Add public key within setup.yml
+git clone https://github.com/laurnts/vmfordockercontainer.git
+nano setup.yml
 ```
 
 ## Features
