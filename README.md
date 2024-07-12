@@ -2,6 +2,7 @@
 
 This Ansible playbook automates the setup of an Ubuntu VM with Docker, enhanced security settings, and useful tools. It's designed to be idempotent and can be rerun for updates.
 
+## First!! Add Your Public Key!
 ```
 Add public key within setup.yml
 ```
@@ -44,7 +45,7 @@ Add public key within setup.yml
 
 4. Run the playbook:
    ```
-   sudo ansible-playbook setup.yml
+   sh install.sh
    ```
 
 ## What This Playbook Does
@@ -58,24 +59,8 @@ Add public key within setup.yml
 7. Installs ctop for Docker container monitoring
 8. Generates an SSH key for the root user
 
-## Customization
-
-You can customize this playbook by modifying the variables in the `vars` section of `setup.yml`. Key areas you might want to adjust include:
-
-- SSH configuration
-- Docker daemon settings
-- Packages to be installed
-- UFW rules
-- Unattended upgrade settings
-
-## Rerunning for Updates
-
-This playbook is designed to be idempotent. You can rerun it at any time to update your system and ensure all configurations are up to date:
-
+### Example: Git Pull from Gitlab 
 ```
-sh install.sh
-```
-or
-```
-ansible-playbook setup.yml
+https://gitlab.com/-/user_settings/personal_access_tokens
+git clone https://<username>:<access_token>@gitlab.com/<username>/<repository>.git
 ```
