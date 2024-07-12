@@ -2,6 +2,10 @@
 
 This Ansible playbook automates the setup of an Ubuntu VM with Docker, enhanced security settings, and useful tools. It's designed to be idempotent and can be rerun for updates.
 
+```
+Add public key within setup.yml
+```
+
 ## Features
 
 - Updates and upgrades system packages
