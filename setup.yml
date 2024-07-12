@@ -14,6 +14,8 @@
       - htop
       - curl
       - python3-pip
+      - zip
+      - unzip
     sysctl_settings:
       - { key: 'vm.max_map_count', value: '262144' }
       - { key: 'fs.file-max', value: '1000000' }
