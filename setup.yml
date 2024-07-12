@@ -1,0 +1,306 @@
+---
+- name: Ubuntu VM Setup with Docker, Root Login, SSH Key Generation, and ctop (Rerunnable Version)
+  hosts: localhost
+  connection: local
+
+  vars:
+    project_user: "{{ ansible_user_id }}"
+    packages:
+      - ufw
+      - unattended-upgrades
+      - zsh
+      - vim
+      - git
+      - htop
+      - curl
+      - python3-pip
+    sysctl_settings:
+      - { key: 'vm.max_map_count', value: '262144' }
+      - { key: 'fs.file-max', value: '1000000' }
+    security_autoupdate_enabled: "true"
+    security_autoupdate_reboot: "true"
+    security_autoupdate_reboot_time: "05:30"
+    security_ssh_password_authentication: "yes"
+    security_ssh_permit_root_login: "yes"
+    security_ssh_permit_empty_password: "no"
+    security_ssh_challenge_response_auth: "no"
+    security_ssh_gss_api_authentication: "no"
+    security_ssh_x11_forwarding: "no"
+    ctop_version: "0.7.7"
+    ssh_public_key: ""
+
+  tasks:
+    - name: Update and full-upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: full
+        autoremove: yes
+        autoclean: yes
+      register: apt_upgrade
+      retries: 5
+      delay: 20
+      until: apt_upgrade is success
+
+    - name: Check if reboot is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Reboot if required
+      reboot:
+      when: reboot_required.stat.exists
+
+    - name: Install required packages
+      apt:
+        name: "{{ packages }}"
+        state: latest
+
+    - name: Configure sysctl settings
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+      loop: "{{ sysctl_settings }}"
+
+    - name: Ensure SSH configuration directory exists
+      file:
+        path: /etc/ssh/sshd_config.d
+        state: directory
+        mode: '0755'
+
+    - name: Configure SSH - PasswordAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/custom_config.conf
+        line: "PasswordAuthentication {{ security_ssh_password_authentication }}"
+        create: yes
+      notify: Check SSH Config
+
+    - name: Configure SSH - PermitRootLogin
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/custom_config.conf
+        line: "PermitRootLogin {{ security_ssh_permit_root_login }}"
+      notify: Check SSH Config
+
+    - name: Configure SSH - PermitEmptyPasswords
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/custom_config.conf
+        line: "PermitEmptyPasswords {{ security_ssh_permit_empty_password }}"
+      notify: Check SSH Config
+
+    - name: Configure SSH - ChallengeResponseAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/custom_config.conf
+        line: "ChallengeResponseAuthentication {{ security_ssh_challenge_response_auth }}"
+      notify: Check SSH Config
+
+    - name: Configure SSH - GSSAPIAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/custom_config.conf
+        line: "GSSAPIAuthentication {{ security_ssh_gss_api_authentication }}"
+      notify: Check SSH Config
+
+    - name: Configure SSH - X11Forwarding
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/custom_config.conf
+        line: "X11Forwarding {{ security_ssh_x11_forwarding }}"
+      notify: Check SSH Config
+
+    - name: Ensure custom config is included in sshd_config
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: "Include /etc/ssh/sshd_config.d/*.conf"
+        insertbefore: BOF
+      notify: Check SSH Config
+
+    - name: Add SSH public key to root's authorized_keys
+      authorized_key:
+        user: root
+        state: present
+        key: "{{ ssh_public_key }}"
+
+    - name: Ensure SSH is allowed through UFW
+      ufw:
+        rule: allow
+        port: '22'
+      notify: Restart UFW
+
+    - name: Add Docker APT Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+
+    - name: Check current Docker version
+      command: docker --version
+      register: docker_version
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Update Docker if installed
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: latest
+      when: docker_version.rc == 0
+      notify: Restart Docker
+
+    - name: Install Docker if not installed
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+      when: docker_version.rc != 0
+      notify: Restart Docker
+
+    - name: Add Project User to Docker Group
+      user:
+        name: "{{ project_user }}"
+        groups: docker
+        append: yes
+        state: present
+
+    - name: Install Python SDK
+      pip:
+        name:
+          - docker==6.0.0
+          - requests==2.26.0
+          - docker-compose
+          - urllib3<2
+        state: present
+      notify: Restart Docker
+
+    - name: Ensure Docker is Started and Enabled
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Configure Docker daemon for enhanced security
+      copy:
+        content: |
+          {
+            "live-restore": true,
+            "userland-proxy": false,
+            "no-new-privileges": true,
+            "default-ulimits": {
+              "nofile": {
+                "Name": "nofile",
+                "Hard": 64000,
+                "Soft": 64000
+              }
+            },
+            "userns-remap": "default",
+            "icc": false,
+            "default-address-pools": [
+              {"base":"172.80.0.0/16","size":24},
+              {"base":"172.90.0.0/16","size":24}
+            ]
+          }
+        dest: /etc/docker/daemon.json
+      notify: Restart Docker
+
+    - name: Setup UFW
+      block:
+        - ufw:
+            default: deny
+            state: enabled
+        - ufw:
+            rule: allow
+            port: '22'
+        - shell: ufw default allow FORWARD
+      notify: Restart UFW
+
+    - name: Install ufw-docker
+      get_url:
+        url: https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker
+        dest: /usr/local/bin/ufw-docker
+        mode: '0755'
+    
+    - name: Install ufw-docker
+      shell: ufw-docker install
+      notify: Restart UFW
+
+    - name: Enable unattended upgrades
+      template:
+        src: "{{ item }}.j2"
+        dest: "/etc/apt/apt.conf.d/{{ item }}"
+      loop:
+        - 20auto-upgrades
+        - 50unattended-upgrades
+
+    - name: Ensure SSH service is started and enabled
+      service:
+        name: ssh
+        state: started
+        enabled: yes
+
+    - name: Generate SSH key for root
+      user:
+        name: root
+        generate_ssh_key: yes
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id_rsa
+      register: ssh_key_result
+
+    - name: Download and install ctop
+      get_url:
+        url: "https://github.com/bcicen/ctop/releases/download/v{{ ctop_version }}/ctop-{{ ctop_version }}-linux-amd64"
+        dest: /usr/local/bin/ctop
+        mode: '0755'
+
+    - name: Display current versions
+      debug:
+        msg: 
+          - "Current Docker version: {{ docker_version.stdout | default('Not installed') }}"
+          - "Current ctop version: {{ ctop_version }}"
+
+    - name: Display SSH public key
+      debug:
+        msg: "SSH public key: {{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+
+  handlers:
+    - name: Check SSH Config
+      command: sshd -t
+      changed_when: false
+      notify: Restart SSH
+
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted
+      register: ssh_restart
+      ignore_errors: yes
+
+    - name: Debug SSH Restart
+      debug:
+        msg: "SSH restart failed. Please check SSH configuration and service status."
+      when: ssh_restart is failed
+
+    - name: Get SSH Service Status
+      command: systemctl status ssh
+      register: ssh_status
+      ignore_errors: yes
+      when: ssh_restart is failed
+
+    - name: Display SSH Service Status
+      debug:
+        msg: "{{ ssh_status.stdout_lines }}"
+      when: ssh_restart is failed
+
+    - name: Restart UFW
+      service:
+        name: ufw
+        state: restarted
+
+    - name: Restart Docker
+      service:
+        name: docker
+        state: restarted
