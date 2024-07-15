@@ -264,6 +264,10 @@
         ssh_key_file: .ssh/id_rsa
       register: ssh_key_result
 
+    - name: Convert SSH private key to PEM format
+      command: ssh-keygen -p -m PEM -f {{ ansible_env.HOME }}/.ssh/id_rsa -N ""
+      when: ssh_key_result.changed
+
     - name: Download and install ctop
       get_url:
         url: "https://github.com/bcicen/ctop/releases/download/v{{ ctop_version }}/ctop-{{ ctop_version }}-linux-amd64"
