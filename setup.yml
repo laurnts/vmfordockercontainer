@@ -2,6 +2,8 @@
 - name: Ubuntu VM Setup with Docker, Root Login, SSH Key Generation, and ctop (Rerunnable Version)
   hosts: localhost
   connection: local
+  vars_files:
+    - secrets.yml
 
   vars:
     project_user: "{{ ansible_user_id }}"
@@ -29,7 +31,6 @@
     security_ssh_gss_api_authentication: "no"
     security_ssh_x11_forwarding: "no"
     ctop_version: "0.7.7"
-    ssh_public_key: ""
 
   tasks:
     - name: Update and full-upgrade packages
@@ -199,7 +200,6 @@
                 "Soft": 64000
               }
             },
-            "userns-remap": "default",
             "icc": false,
             "default-address-pools": [
               {"base":"172.80.0.0/16","size":24},
