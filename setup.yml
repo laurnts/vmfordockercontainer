@@ -203,7 +203,7 @@
         content: |
           {
             "live-restore": true,
-            "userland-proxy": false,
+            "userland-proxy": true,
             "no-new-privileges": true,
             "default-ulimits": {
               "nofile": {
@@ -212,7 +212,7 @@
                 "Soft": 64000
               }
             },
-            "icc": false,
+            "icc": true,
             "default-address-pools": [
               {"base":"172.80.0.0/16","size":24},
               {"base":"172.90.0.0/16","size":24}
