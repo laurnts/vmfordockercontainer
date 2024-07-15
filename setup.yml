@@ -21,6 +21,10 @@
     sysctl_settings:
       - { key: 'vm.max_map_count', value: '262144' }
       - { key: 'fs.file-max', value: '1000000' }
+      - { key: 'net.core.rmem_max', value: '8388608' }
+      - { key: 'net.core.rmem_default', value: '8388608' }
+      - { key: 'net.core.wmem_max', value: '8388608' }
+      - { key: 'net.core.wmem_default', value: '8388608' }
     security_autoupdate_enabled: "true"
     security_autoupdate_reboot: "true"
     security_autoupdate_reboot_time: "05:30"
@@ -63,6 +67,7 @@
         name: "{{ item.key }}"
         value: "{{ item.value }}"
         state: present
+        reload: yes
       loop: "{{ sysctl_settings }}"
 
     - name: Ensure SSH configuration directory exists
@@ -125,6 +130,13 @@
       ufw:
         rule: allow
         port: '22'
+      notify: Restart UFW
+
+    - name: Allow QUIC protocol through UFW (UDP port 443)
+      ufw:
+        rule: allow
+        port: '443'
+        proto: 'udp'
       notify: Restart UFW
 
     - name: Add Docker APT Key
