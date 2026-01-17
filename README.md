@@ -51,6 +51,12 @@ security_ssh_key: "ssh-rsa AAAA... user@laptop"
 
 **Note:** If disabling root login and password auth, you must provide `security_ssh_key`.
 
+## Requirements
+
+- Ubuntu/Debian with sudo
+- Ansible (installed by `install.sh`)
+- python3-passlib (installed by `install.sh`, required for password hashing)
+
 ## Output
 
 When creating a non-root user, credentials are displayed at the end:

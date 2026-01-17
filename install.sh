@@ -12,6 +12,9 @@ sudo apt-add-repository --yes --update ppa:ansible/ansible
 # Install Ansible
 sudo apt install -y ansible
 
+# Install passlib dependency for password hashing
+sudo apt install -y python3-passlib
+
 # Check Ansible version
 ansible --version
 
