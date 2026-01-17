@@ -45,6 +45,7 @@
       line: "X11Forwarding {{ security_ssh_x11_forwarding }}"
     - regexp: "^PubkeyAcceptedKeyTypes"
       line: "PubkeyAcceptedKeyTypes=+ssh-rsa"
+  notify: Restart SSH
 
 - name: Stop SSH Socket
   systemd:

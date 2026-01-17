@@ -11,6 +11,7 @@
   ufw:
     default: deny
     state: enabled
+  notify: Restart UFW
 
 - name: Configure UFW Port
   ufw:
@@ -20,6 +21,7 @@
     - { rule: 'allow', port: '{{ server_port }}' }
     - { rule: 'deny', port: '22' }
   when: server_port != 22
+  notify: Restart UFW
 
 - name: Allow SSH port through UFW
   ufw:

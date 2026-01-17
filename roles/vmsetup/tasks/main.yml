@@ -28,31 +28,23 @@
 
 # Configure SSH
 - import_tasks: ssh.yml
-  notify:
-    - Restart SSH
   tags:
     - ssh
     - secure
 
 # Install Docker
 - import_tasks: docker.yml
-  notify:
-    - Restart Docker
   tags:
     - docker
 
 # Configure Firewall
 - import_tasks: ufw.yml
-  notify:
-    - Restart UFW
   tags:
     - ufw
     - secure
 
 # Configure Fail2ban
 - import_tasks: fail2ban.yml
-  notify:
-    - Restart Fail2Ban
   tags:
     - fail2ban
     - secure
