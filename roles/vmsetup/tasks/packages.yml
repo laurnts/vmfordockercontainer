@@ -15,9 +15,9 @@
     path: /var/run/reboot-required
   register: reboot_required
 
-- name: Notify if reboot is required
-  debug:
-    msg: "NOTICE: A system reboot is required. Please reboot manually after the playbook completes."
+- name: Queue reboot notice for summary
+  set_fact:
+    vmsetup_summary: "{{ (vmsetup_summary | default([])) + ['NOTICE: A system reboot is required. Please reboot manually after the playbook completes.'] }}"
   when: reboot_required.stat.exists
 
 - name: Install initial packages

@@ -18,6 +18,12 @@
     state: present
   when: server_user != "root"
 
+- name: Ensure docker group exists
+  group:
+    name: docker
+    state: present
+  when: server_user != "root"
+
 - name: Create project user
   user:
     name: "{{ server_user }}"
