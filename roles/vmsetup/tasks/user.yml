@@ -65,44 +65,46 @@
   when: server_user != "root"
 
 - name: Display user credentials (with password login)
-  debug:
-    msg:
-      - "============================================"
-      - "USER CREDENTIALS (save this securely!)"
-      - "============================================"
-      - "Username: {{ server_user }}"
-      - "Password: {{ user_password }}"
-      - "SSH Port: {{ server_port }}"
-      - "SSH Login Dir: {{ server_login_dir if server_login_dir | length > 0 else '/home/' + server_user }}"
-      - ""
-      - "Login command:"
-      - "  ssh {{ server_user }}@<server_ip> -p {{ server_port }}"
-      - "============================================"
+  set_fact:
+    vmsetup_summary: "{{ (vmsetup_summary | default([])) + [([
+      '============================================',
+      'USER CREDENTIALS (save this securely!)',
+      '============================================',
+      'Username: ' ~ server_user,
+      'Password: ' ~ user_password,
+      'SSH Port: ' ~ (server_port | string),
+      'SSH Login Dir: ' ~ (server_login_dir if server_login_dir | length > 0 else '/home/' ~ server_user),
+      '',
+      'Login command:',
+      '  ssh ' ~ server_user ~ '@<server_ip> -p ' ~ (server_port | string),
+      '============================================'
+    ] | join('\n')) ] }}"
   when:
     - server_user != "root"
     - security_ssh_password_authentication == "yes"
 
 - name: Display user credentials (with key-based login)
-  debug:
-    msg:
-      - "============================================"
-      - "USER CREDENTIALS (save this securely!)"
-      - "============================================"
-      - "Username: {{ server_user }}"
-      - "Password: {{ user_password }}"
-      - "SSH Port: {{ server_port }}"
-      - "SSH Login Dir: {{ server_login_dir if server_login_dir | length > 0 else '/home/' + server_user }}"
-      - ""
-      - "Login command (key-based):"
-      - "  ssh {{ server_user }}@<server_ip> -p {{ server_port }} -i ~/.ssh/your_private_key"
-      - "============================================"
+  set_fact:
+    vmsetup_summary: "{{ (vmsetup_summary | default([])) + [([
+      '============================================',
+      'USER CREDENTIALS (save this securely!)',
+      '============================================',
+      'Username: ' ~ server_user,
+      'Password: ' ~ user_password,
+      'SSH Port: ' ~ (server_port | string),
+      'SSH Login Dir: ' ~ (server_login_dir if server_login_dir | length > 0 else '/home/' ~ server_user),
+      '',
+      'Login command (key-based):',
+      '  ssh ' ~ server_user ~ '@<server_ip> -p ' ~ (server_port | string) ~ ' -i ~/.ssh/your_private_key',
+      '============================================'
+    ] | join('\n')) ] }}"
   when:
     - server_user != "root"
     - security_ssh_password_authentication == "no"
 
 - name: Display user SSH public key
-  debug:
-    msg: "SSH public key for {{ server_user }}: {{ lookup('file', '/home/' + server_user + '/.ssh/id_rsa.pub') }}"
+  set_fact:
+    vmsetup_summary: "{{ (vmsetup_summary | default([])) + ['SSH public key for ' ~ server_user ~ ': ' ~ lookup('file', '/home/' + server_user + '/.ssh/id_rsa.pub')] }}"
   when:
     - server_user != "root"
     - user_ssh_key_result.changed

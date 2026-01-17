@@ -1,0 +1,9 @@
+---
+- name: Ensure summary is initialized
+  set_fact:
+    vmsetup_summary: "{{ vmsetup_summary | default([]) }}"
+
+- name: Display collected summary
+  debug:
+    msg: "{{ vmsetup_summary }}"
+  when: vmsetup_summary | length > 0

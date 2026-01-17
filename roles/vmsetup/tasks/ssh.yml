@@ -75,8 +75,8 @@
     - ssh_key_result.changed
 
 - name: Display SSH public key
-  debug:
-    msg: "SSH public key: {{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+  set_fact:
+    vmsetup_summary: "{{ (vmsetup_summary | default([])) + ['SSH public key: ' ~ lookup('file', '/root/.ssh/id_rsa.pub')] }}"
   when:
     - server_user == "root"
     - ssh_key_result.changed

@@ -23,6 +23,18 @@ if [ ! -f "playbook.yml" ]; then
     exit 1
 fi
 
+# Ensure group_vars/all.yml exists
+if [ ! -f "group_vars/all.yml" ]; then
+    if [ -f "group_vars/all.example.yml" ]; then
+        echo "group_vars/all.yml not found. Creating it from group_vars/all.example.yml..."
+        cp group_vars/all.example.yml group_vars/all.yml
+        echo "Created group_vars/all.yml. Please edit this file to match your environment before running."
+    else
+        echo "Error: group_vars/all.yml not found and group_vars/all.example.yml is missing."
+        exit 1
+    fi
+fi
+
 # Run the Ansible playbook against localhost
 echo "Running Ansible playbook on localhost..."
 ansible-playbook playbook.yml
