@@ -6,6 +6,7 @@
 server_port: 22                    # SSH port (default: 22)
 server_user: root                  # SSH user (default: root)
 server_user_password: ""           # User password (if empty, random password generated)
+server_login_dir: ""               # Directory to land in after SSH login (e.g., "/var/www"), empty = home
 server_hostname: ""                # Optional hostname (e.g., "myserver.example.com")
 server_timezone: "UTC"             # Timezone (e.g., "Europe/Amsterdam", "America/New_York")
 disable_swap: true                 # Disable swap (recommended for Docker)

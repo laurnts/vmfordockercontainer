@@ -3,6 +3,7 @@
 server_port: 22
 server_user: root
 server_user_password: ""   # Optional, if empty a random password will be generated
+server_login_dir: ""       # Directory to land in after SSH login, empty = home
 server_hostname: ""        # Optional, set to configure hostname
 server_timezone: "UTC"     # Override: Europe/Amsterdam, America/New_York, etc.
 disable_swap: true         # Recommended for Docker

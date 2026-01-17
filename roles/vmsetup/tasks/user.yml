@@ -28,6 +28,15 @@
     password: "{{ user_password | password_hash('sha512') }}"
   when: server_user != "root"
 
+- name: Set login directory in bashrc
+  lineinfile:
+    path: "/home/{{ server_user }}/.bashrc"
+    line: "cd {{ server_login_dir }}"
+    state: present
+  when:
+    - server_user != "root"
+    - server_login_dir | length > 0
+
 - name: Allow admin users to have passwordless sudo
   lineinfile:
     dest: /etc/sudoers
@@ -64,6 +73,7 @@
       - "Username: {{ server_user }}"
       - "Password: {{ user_password }}"
       - "SSH Port: {{ server_port }}"
+      - "SSH Login Dir: {{ server_login_dir if server_login_dir | length > 0 else '/home/' + server_user }}"
       - ""
       - "Login command:"
       - "  ssh {{ server_user }}@<server_ip> -p {{ server_port }}"
@@ -81,6 +91,7 @@
       - "Username: {{ server_user }}"
       - "Password: {{ user_password }}"
       - "SSH Port: {{ server_port }}"
+      - "SSH Login Dir: {{ server_login_dir if server_login_dir | length > 0 else '/home/' + server_user }}"
       - ""
       - "Login command (key-based):"
       - "  ssh {{ server_user }}@<server_ip> -p {{ server_port }} -i ~/.ssh/your_private_key"
