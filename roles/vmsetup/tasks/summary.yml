@@ -5,5 +5,5 @@
 
 - name: Display collected summary
   debug:
-    msg: "{{ vmsetup_summary }}"
+    msg: "{{ vmsetup_summary | join('\n\n') }}"
   when: vmsetup_summary | length > 0
