@@ -21,6 +21,11 @@
   tags:
     - timezone
 
+# Create User (if not root)
+- import_tasks: user.yml
+  tags:
+    - user
+
 # Configure SSH
 - import_tasks: ssh.yml
   notify:
@@ -28,11 +33,6 @@
   tags:
     - ssh
     - secure
-
-# Create User (if not root)
-- import_tasks: user.yml
-  tags:
-    - user
 
 # Install Docker
 - import_tasks: docker.yml
