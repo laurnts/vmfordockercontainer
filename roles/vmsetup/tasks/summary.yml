@@ -5,5 +5,8 @@
 
 - name: Display collected summary
   debug:
-    msg: "{{ vmsetup_summary | join('\n\n') }}"
+    msg: "{{ item }}"
+  loop: "{{ vmsetup_summary }}"
+  loop_control:
+    label: ""
   when: vmsetup_summary | length > 0
