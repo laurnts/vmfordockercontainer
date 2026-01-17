@@ -1,0 +1,26 @@
+---
+- name: Restart SSH
+  service:
+    name: ssh
+    state: restarted
+
+- name: Reload Daemon
+  systemd:
+    daemon_reload: true
+
+- name: Restart UFW
+  service:
+    name: ufw
+    state: restarted
+  retries: 3
+  delay: 10
+
+- name: Restart Fail2Ban
+  service:
+    name: fail2ban
+    state: restarted
+
+- name: Restart Docker
+  service:
+    name: docker
+    state: restarted

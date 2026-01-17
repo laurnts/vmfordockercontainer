@@ -1,0 +1,54 @@
+---
+- name: Determine user home directory
+  set_fact:
+    user_home: "{{ '/root' if server_user == 'root' else '/home/' + server_user }}"
+    user_group: "{{ server_user }}"
+
+- name: Create history.log
+  file:
+    path: /var/log/history.log
+    owner: "{{ server_user }}"
+    group: "{{ user_group }}"
+    state: touch
+    mode: '0644'
+
+- name: Allow Duplicates in History
+  lineinfile:
+    path: "{{ user_home }}/.bashrc"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+    mode: '0644'
+  loop:
+    - regexp: "^HISTCONTROL"
+      line: '#HISTCONTROL=ignoreboth'
+
+- name: Configure .bashrc to Log History
+  lineinfile:
+    path: "{{ user_home }}/.bashrc"
+    line: "{{ item }}"
+    state: present
+  loop:
+    - HISTFILE=/var/log/history.log
+    - HISTTIMEFORMAT=""
+    - PROMPT_COMMAND='_LAST_CMD=$(builtin history 1 | sed "s/^[ ]*[0-9]*[ ]*//"); if [ -n "$_LAST_CMD" ] && [ "$_LAST_CMD" != "history" ] && [ "$_LAST_CMD" != "history -a" ] && [[ ! "$_LAST_CMD" =~ ^#[0-9]+$ ]]; then echo "[$(date +"%Y-%m-%d %H:%M:%S")] [user:${SSH_USER_IDENTIFIER:-unknown}] $_LAST_CMD" >> /var/log/history.log; fi'
+
+- name: Deploy SSH Identifier Script
+  template:
+    src: ssh-identifier.sh.j2
+    dest: /etc/profile.d/ssh-identifier.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Source SSH Identifier in Bashrc
+  lineinfile:
+    path: "{{ user_home }}/.bashrc"
+    line: "source /etc/profile.d/ssh-identifier.sh"
+    state: present
+
+- name: Add History Wrapper Function to Bashrc
+  lineinfile:
+    path: "{{ user_home }}/.bashrc"
+    line: "history() { if [[ \"$1\" =~ ^-[cdanrwps]$ ]]; then builtin history \"$@\"; elif [ -f /var/log/history.log ]; then _lines=${1:-1000}; _count=1; tail -n $_lines /var/log/history.log 2>/dev/null | grep -E '^\\[.*\\] \\[user:' | tail -n $_lines | while IFS= read -r line; do printf \"%5d  %s\\n\" $_count \"$line\"; _count=$((_count + 1)); done; else builtin history \"$@\"; fi; }"
+    state: present

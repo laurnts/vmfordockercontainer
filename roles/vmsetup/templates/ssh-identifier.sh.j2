@@ -1,0 +1,149 @@
+#!/bin/bash
+# SSH User Identifier Script
+# Extracts SSH key comment for history logging
+
+if [ -n "$SSH_CONNECTION" ]; then
+  # SSH session detected
+  SOURCE_IP=$(echo "$SSH_CONNECTION" | awk '{print $1}')
+  CURRENT_USER=$(whoami)
+  CURRENT_TTY=$(tty 2>/dev/null || echo "")
+  
+  # Try method 1: SSH Agent forwarding
+  if command -v ssh-add >/dev/null 2>&1; then
+    AGENT_KEY=$(ssh-add -L 2>/dev/null | head -n1)
+    if [ -n "$AGENT_KEY" ] && [ "$AGENT_KEY" != "The agent has no identities" ]; then
+      SSH_USER_IDENTIFIER=$(echo "$AGENT_KEY" | awk '{print $NF}')
+    fi
+  fi
+  
+  # Try method 2: Parse auth.log to find key fingerprint used for this session
+  if [ -z "$SSH_USER_IDENTIFIER" ] && [ -f /var/log/auth.log ]; then
+    # Try to read auth.log with sudo if direct read fails
+    AUTH_LINE=""
+    
+    # First try: direct read (if user has permissions)
+    if [ -r /var/log/auth.log ]; then
+      AUTH_LINE=$(grep -a "Accepted publickey for $CURRENT_USER" /var/log/auth.log 2>/dev/null | grep "$SOURCE_IP" | tail -n1)
+      if [ -z "$AUTH_LINE" ]; then
+        AUTH_LINE=$(grep -a "Accepted publickey" /var/log/auth.log 2>/dev/null | grep "$SOURCE_IP" | tail -n1)
+      fi
+    fi
+    
+    # Second try: use sudo if direct read failed or file not readable
+    if [ -z "$AUTH_LINE" ] && command -v sudo >/dev/null 2>&1; then
+      # Try sudo (will work if user has passwordless sudo)
+      AUTH_LINE=$(sudo grep -a "Accepted publickey for $CURRENT_USER" /var/log/auth.log 2>/dev/null | grep "$SOURCE_IP" | tail -n1)
+      if [ -z "$AUTH_LINE" ]; then
+        AUTH_LINE=$(sudo grep -a "Accepted publickey" /var/log/auth.log 2>/dev/null | grep "$SOURCE_IP" | tail -n1)
+      fi
+    fi
+    
+    # Third try: match by TTY if available
+    if [ -z "$AUTH_LINE" ] && [ -n "$CURRENT_TTY" ]; then
+      TTY_NAME=$(basename "$CURRENT_TTY")
+      if [ -r /var/log/auth.log ]; then
+        AUTH_LINE=$(grep -a "Accepted publickey" /var/log/auth.log 2>/dev/null | grep "$TTY_NAME" | tail -n1)
+      elif command -v sudo >/dev/null 2>&1; then
+        AUTH_LINE=$(sudo grep -a "Accepted publickey" /var/log/auth.log 2>/dev/null | grep "$TTY_NAME" | tail -n1)
+      fi
+    fi
+    
+    if [ -n "$AUTH_LINE" ] && [ -f ~/.ssh/authorized_keys ]; then
+      # Extract fingerprint from auth.log (format: "RSA SHA256:xxx" or "ED25519 SHA256:xxx")
+      KEY_FINGERPRINT=$(echo "$AUTH_LINE" | sed -n 's/.*\(SHA256:[^ ]*\).*/\1/p' | head -n1)
+      
+      if [ -n "$KEY_FINGERPRINT" ]; then
+        # Match fingerprint to authorized_keys and extract comment
+        while IFS= read -r line; do
+          if [[ "$line" =~ ^ssh- ]]; then
+            # Extract key type and key data
+            KEY_TYPE=$(echo "$line" | awk '{print $1}')
+            KEY_DATA=$(echo "$line" | awk '{print $2}')
+            COMMENT=$(echo "$line" | awk '{for(i=3;i<=NF;i++) printf "%s ", $i; print ""}' | xargs)
+            
+            if [ -n "$KEY_DATA" ] && [ -n "$COMMENT" ]; then
+              # Calculate fingerprint of this key
+              CALC_FP=$(echo "$KEY_TYPE $KEY_DATA" | ssh-keygen -lf - 2>/dev/null 2>&1 | awk '{print $2}')
+              # Normalize both fingerprints for comparison (remove SHA256: prefix if present)
+              NORM_CALC="${CALC_FP#SHA256:}"
+              NORM_AUTH="${KEY_FINGERPRINT#SHA256:}"
+              if [ "$CALC_FP" = "$KEY_FINGERPRINT" ] || [ "$CALC_FP" = "SHA256:$NORM_AUTH" ] || [ "SHA256:$NORM_CALC" = "$KEY_FINGERPRINT" ] || [ "$NORM_CALC" = "$NORM_AUTH" ]; then
+                SSH_USER_IDENTIFIER="$COMMENT"
+                break
+              fi
+            fi
+          fi
+        done < ~/.ssh/authorized_keys
+      fi
+      
+      # If fingerprint matching failed, try to extract key info from auth.log more carefully
+      if [ -z "$SSH_USER_IDENTIFIER" ]; then
+        # Get the most recent login entry for this user and IP
+        RECENT_LOGIN=""
+        if [ -r /var/log/auth.log ]; then
+          RECENT_LOGIN=$(grep -a "Accepted publickey for $CURRENT_USER" /var/log/auth.log 2>/dev/null | grep "$SOURCE_IP" | tail -n1)
+        elif command -v sudo >/dev/null 2>&1; then
+          RECENT_LOGIN=$(sudo grep -a "Accepted publickey for $CURRENT_USER" /var/log/auth.log 2>/dev/null | grep "$SOURCE_IP" | tail -n1)
+        fi
+        
+        if [ -n "$RECENT_LOGIN" ]; then
+          # Try to extract the full key fingerprint (including key type)
+          # Format: "Accepted publickey for app from IP port XXXX ssh2: RSA SHA256:xxx" or "ED25519 SHA256:xxx"
+          FULL_FP=$(echo "$RECENT_LOGIN" | sed -n 's/.*\(\(RSA\|ECDSA\|ED25519\|DSA\) SHA256:[^ ]*\).*/\1/p' | head -n1)
+          
+          if [ -n "$FULL_FP" ]; then
+            # Extract just the SHA256 part
+            FP_PART=$(echo "$FULL_FP" | grep -o "SHA256:[^ ]*" | head -n1)
+            
+            # Try matching again with the extracted fingerprint
+            while IFS= read -r line; do
+              if [[ "$line" =~ ^ssh- ]]; then
+                KEY_TYPE=$(echo "$line" | awk '{print $1}')
+                KEY_DATA=$(echo "$line" | awk '{print $2}')
+                COMMENT=$(echo "$line" | awk '{for(i=3;i<=NF;i++) printf "%s ", $i; print ""}' | xargs)
+                
+                if [ -n "$KEY_DATA" ] && [ -n "$COMMENT" ]; then
+                  # Try different fingerprint formats
+                  CALC_FP=$(echo "$KEY_TYPE $KEY_DATA" | ssh-keygen -lf - 2>/dev/null 2>&1 | awk '{print $2}')
+                  if [ -n "$CALC_FP" ]; then
+                    # Normalize both fingerprints for comparison
+                    NORM_CALC="${CALC_FP#SHA256:}"
+                    NORM_AUTH="${FP_PART#SHA256:}"
+                    # Compare fingerprints (handle with/without SHA256: prefix)
+                    if [ "$CALC_FP" = "$FP_PART" ] || [ "$CALC_FP" = "SHA256:$NORM_AUTH" ] || [ "SHA256:$NORM_CALC" = "$FP_PART" ] || [ "$NORM_CALC" = "$NORM_AUTH" ]; then
+                      SSH_USER_IDENTIFIER="$COMMENT"
+                      break
+                    fi
+                  fi
+                fi
+              fi
+            done < ~/.ssh/authorized_keys
+          fi
+        fi
+      fi
+    fi
+  fi
+  
+  # Try method 3: Single key in authorized_keys
+  if [ -z "$SSH_USER_IDENTIFIER" ] && [ -f ~/.ssh/authorized_keys ]; then
+    KEY_COUNT=$(grep -c "^ssh-" ~/.ssh/authorized_keys 2>/dev/null || echo "0")
+    if [ "$KEY_COUNT" -eq 1 ]; then
+      SSH_USER_IDENTIFIER=$(grep "^ssh-" ~/.ssh/authorized_keys | awk '{for(i=3;i<=NF;i++) printf "%s ", $i; print ""}' | xargs)
+    fi
+  fi
+  
+  # Try method 4: Use first key with comment as fallback (only if all else fails)
+  if [ -z "$SSH_USER_IDENTIFIER" ] && [ -f ~/.ssh/authorized_keys ]; then
+    # Get only the first key's comment, not all of them
+    FIRST_KEY_LINE=$(grep "^ssh-" ~/.ssh/authorized_keys | head -n1)
+    if [ -n "$FIRST_KEY_LINE" ]; then
+      SSH_USER_IDENTIFIER=$(echo "$FIRST_KEY_LINE" | awk '{for(i=3;i<=NF;i++) printf "%s ", $i; print ""}' | xargs)
+    fi
+  fi
+else
+  # Non-SSH session (cron, local console, systemd, etc)
+  SSH_USER_IDENTIFIER="system"
+fi
+
+# Ensure we have something set
+export SSH_USER_IDENTIFIER="${SSH_USER_IDENTIFIER:-unknown}"

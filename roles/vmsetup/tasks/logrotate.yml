@@ -1,0 +1,23 @@
+---
+- name: Install Logrotate
+  apt:
+    name: logrotate
+    state: latest
+    update_cache: yes
+
+- name: Generate Docker Containers Logrotate Configuration
+  template:
+    src: docker-containers.j2
+    dest: "/etc/logrotate.d/docker-containers"
+    mode: '0644'
+
+- name: Generate History Logrotation
+  template:
+    src: history.j2
+    dest: "/etc/logrotate.d/history"
+    mode: '0644'
+
+- name: Start Logrotate
+  service:
+    name: logrotate
+    state: started

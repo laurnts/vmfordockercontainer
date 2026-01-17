@@ -1,0 +1,48 @@
+---
+- name: Install UFW
+  apt:
+    name: ufw
+    state: latest
+
+- name: Allow UFW Port Forward (Tunnel)
+  shell: ufw default allow FORWARD
+
+- name: Setup UFW defaults
+  ufw:
+    default: deny
+    state: enabled
+
+- name: Configure UFW Port
+  ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+  loop:
+    - { rule: 'allow', port: '{{ server_port }}' }
+    - { rule: 'deny', port: '22' }
+  when: server_port != 22
+
+- name: Allow SSH port through UFW
+  ufw:
+    rule: allow
+    port: "{{ server_port }}"
+  when: server_port == 22
+
+- name: Allow QUIC protocol through UFW (UDP port 443)
+  ufw:
+    rule: allow
+    port: '443'
+    proto: 'udp'
+
+- name: Start UFW
+  service:
+    name: ufw
+    state: started
+    enabled: true
+
+- name: Install ufw-docker
+  shell: |
+    rm -rf /usr/local/bin/ufw-docker
+    wget -O /usr/local/bin/ufw-docker https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker
+    chmod +x /usr/local/bin/ufw-docker
+    ufw-docker install
+  notify: Restart UFW

@@ -1,0 +1,22 @@
+---
+# Server Configuration
+# Override these defaults as needed
+
+# SSH Configuration
+server_port: 22                    # SSH port (default: 22)
+server_user: root                  # SSH user (default: root)
+server_user_password: ""           # User password (if empty, random password generated)
+server_hostname: ""                # Optional hostname (e.g., "myserver.example.com")
+server_timezone: "UTC"             # Timezone (e.g., "Europe/Amsterdam", "America/New_York")
+disable_swap: true                 # Disable swap (recommended for Docker)
+
+# Security Settings
+security_ssh_permit_root_login: "yes"              # Allow root login (yes/no)
+security_ssh_password_authentication: "yes"        # Allow password auth (yes/no)
+security_ssh_key: ""                                # Your SSH public key (required if disabling root/password)
+# Example: security_ssh_key: "ssh-rsa AAAA... your-comment"
+
+# Auto-updates
+security_autoupdate_enabled: true
+security_autoupdate_reboot: true
+security_autoupdate_reboot_time: "05:30"

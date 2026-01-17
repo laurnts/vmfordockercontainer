@@ -1,0 +1,13 @@
+---
+- name: Disable Swap
+  command: swapoff -a
+  when: disable_swap | bool
+  changed_when: false
+
+- name: Configure sysctl settings
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop: "{{ sysctl_settings }}"

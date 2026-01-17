@@ -1,0 +1,18 @@
+---
+- name: Install Unattended Upgrades Package
+  package:
+    name: unattended-upgrades
+    state: present
+
+- name: Copy Unattended-Upgrades Configuration
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/apt/apt.conf.d/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - 20auto-upgrades
+    - 50unattended-upgrades
+  when:
+    - security_autoupdate_enabled | bool

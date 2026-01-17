@@ -1,0 +1,12 @@
+/var/log/history.log {
+    su {{ server_user }} {{ server_user }}
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    dateext
+    dateformat -%d-%m-%Y
+    extension .log
+}

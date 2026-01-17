@@ -1,0 +1,22 @@
+// Security updates only
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+    "${distro_id}ESM:${distro_codename}-infra-security";
+};
+
+// Blacklist packages that should not be auto-updated
+Unattended-Upgrade::Package-Blacklist {
+    // "docker-ce";
+    // "docker-ce-cli";
+};
+
+// Automatic reboot settings
+Unattended-Upgrade::Automatic-Reboot "{{ security_autoupdate_reboot }}";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ security_autoupdate_reboot_time }}";
+
+// Remove unused dependencies
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+// Remove unused kernel packages
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";

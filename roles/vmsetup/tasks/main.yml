@@ -1,0 +1,76 @@
+---
+# Set Hostname
+- name: Set Hostname
+  hostname:
+    name: "{{ server_hostname }}"
+  when: server_hostname | length > 0
+
+# Update and Upgrade Packages
+- import_tasks: packages.yml
+  tags:
+    - packages
+    - upgrade
+
+# Configure System Settings
+- import_tasks: sysctl.yml
+  tags:
+    - sysctl
+
+# Configure Timezone
+- import_tasks: timezone.yml
+  tags:
+    - timezone
+
+# Configure SSH
+- import_tasks: ssh.yml
+  notify:
+    - Restart SSH
+  tags:
+    - ssh
+    - secure
+
+# Create User (if not root)
+- import_tasks: user.yml
+  tags:
+    - user
+
+# Install Docker
+- import_tasks: docker.yml
+  notify:
+    - Restart Docker
+  tags:
+    - docker
+
+# Configure Firewall
+- import_tasks: ufw.yml
+  notify:
+    - Restart UFW
+  tags:
+    - ufw
+    - secure
+
+# Configure Fail2ban
+- import_tasks: fail2ban.yml
+  notify:
+    - Restart Fail2Ban
+  tags:
+    - fail2ban
+    - secure
+
+# Configure Unattended Upgrades
+- import_tasks: unattended.yml
+  tags:
+    - unattended
+    - secure
+
+# Configure Command History Tracking
+- import_tasks: history.yml
+  tags:
+    - history
+    - utilities
+
+# Configure Log Rotation
+- import_tasks: logrotate.yml
+  tags:
+    - logrotate
+    - utilities

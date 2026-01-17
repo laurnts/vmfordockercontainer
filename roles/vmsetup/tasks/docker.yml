@@ -1,0 +1,59 @@
+---
+- name: Ensure keyrings directory exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Add Docker GPG Key (modern method)
+  get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Check current Docker version
+  command: docker --version
+  register: docker_version
+  changed_when: false
+  ignore_errors: yes
+
+- name: Install Docker
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+      - python3-docker
+      - python3-requests
+    state: present
+    update_cache: yes
+  notify: Restart Docker
+
+- name: Add user to Docker Group
+  user:
+    name: "{{ server_user }}"
+    groups: docker
+    append: yes
+    state: present
+
+- name: Ensure Docker is Started and Enabled
+  service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Configure Docker daemon
+  copy:
+    content: "{{ docker_daemon_config | to_nice_json }}"
+    dest: /etc/docker/daemon.json
+  notify: Restart Docker
+
+- name: Display current Docker version
+  debug:
+    msg: "Current Docker version: {{ docker_version.stdout | default('Not installed') }}"

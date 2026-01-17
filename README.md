@@ -1,67 +1,72 @@
-# Ubuntu VM Setup Playbook
+# Minimal Ubuntu VM Setup with Docker
 
-This Ansible playbook automates the setup of an Ubuntu VM with Docker, enhanced security settings, and useful tools. It's designed to be idempotent and can be rerun for updates.
-
-## First, Add your public key with setup.yml!
-```
-git clone https://github.com/laurnts/vmfordockercontainer.git
-nano setup.yml
-```
+Ansible playbook to setup an Ubuntu VM with Docker. Runs on localhost, idempotent and rerunnable.
 
 ## Features
 
-- Updates and upgrades system packages
-- Configures system settings (sysctl)
-- Sets up SSH with secure configurations
-- Installs and configures Docker
-- Installs Docker Compose and Python SDK for Docker
-- Sets up UFW (Uncomplicated Firewall) with Docker integration
-- Configures unattended upgrades
-- Installs ctop for Docker container monitoring
-- Generates SSH key for root user
+- System packages update and upgrade
+- SSH configuration (port, user, key-based auth)
+- Docker CE with Compose v2 plugin
+- UFW firewall with Docker integration
+- Fail2ban for SSH protection
+- Unattended security upgrades
+- Command history tracking
+- Log rotation
 
-## Requirements
+## Quick Start
 
-- Ubuntu target system (tested on Ubuntu 20.04 LTS and newer)
-- Ansible 2.9 or newer on the control machine
-- SSH access to the target system with sudo privileges
-
-## Usage
-
-1. Clone this repository:
-   ```
-   git clone git@github.com:laurnts/vmfordockercontainer.git
-   ```
-
-2. Review and adjust variables in `setup.yml` if needed, particularly:
-   - `project_user`
-   - `ssh_public_key`
-   - `security_*` variables for SSH configuration
-   - `ctop_version`
-
-3. Ensure you have the following files in the same directory:
-   - `setup.yml` (the main playbook)
-   - `20auto-upgrades.j2`
-   - `50unattended-upgrades.j2`
-
-4. Run the playbook:
-   ```
-   sh install.sh
-   ```
-
-## What This Playbook Does
-
-1. Updates and upgrades all system packages
-2. Configures sysctl settings for better performance
-3. Sets up SSH with custom security configurations
-4. Installs and configures Docker and Docker Compose
-5. Sets up UFW and integrates it with Docker
-6. Configures unattended upgrades for automatic system updates
-7. Installs ctop for Docker container monitoring
-8. Generates an SSH key for the root user
-
-### Example: Git Pull from Gitlab with Personal Access Token
+```bash
+git clone git@github.com:laurnts/vmfordockercontainer.git
+cd vmfordockercontainer
+nano group_vars/all.yml  # Edit configuration
+sh install.sh
 ```
-https://gitlab.com/-/user_settings/personal_access_tokens
-git clone https://<username>:<access_token>@gitlab.com/<username>/<repository>.git
+
+Or run directly:
+
+```bash
+ansible-playbook playbook.yml
 ```
+
+## Configuration
+
+Edit `group_vars/all.yml`:
+
+```yaml
+# Default: root user, port 22
+server_port: 22
+server_user: root
+
+# Custom user example:
+server_port: 1234
+server_user: user
+server_user_password: ""              # Empty = auto-generate
+server_hostname: "myserver"
+server_timezone: "Europe/Amsterdam"
+security_ssh_permit_root_login: "no"
+security_ssh_password_authentication: "no"
+security_ssh_key: "ssh-rsa AAAA... user@laptop"
+```
+
+**Note:** If disabling root login and password auth, you must provide `security_ssh_key`.
+
+## Output
+
+When creating a non-root user, credentials are displayed at the end:
+
+```
+============================================
+USER CREDENTIALS (save this securely!)
+============================================
+Username: user
+Password: GeneratedPassword123
+SSH Port: 1234
+
+Login command:
+  ssh user@<server_ip> -p 1234
+============================================
+```
+
+## License
+
+Open source.

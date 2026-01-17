@@ -1,0 +1,14 @@
+[DEFAULT]
+# Ban hosts using UFW
+banaction = ufw
+# Ignore localhost
+ignoreip = 127.0.0.1/8 ::1
+
+[sshd]
+enabled = true
+port = {{ server_port }}
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 5
+bantime = 3600
+findtime = 600

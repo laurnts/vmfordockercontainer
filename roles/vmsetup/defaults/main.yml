@@ -1,0 +1,71 @@
+---
+# Server Configuration
+server_port: 22
+server_user: root
+server_user_password: ""   # Optional, if empty a random password will be generated
+server_hostname: ""        # Optional, set to configure hostname
+server_timezone: "UTC"     # Override: Europe/Amsterdam, America/New_York, etc.
+disable_swap: true         # Recommended for Docker
+
+# Security Settings
+security_ssh_permit_root_login: "yes"
+security_ssh_password_authentication: "yes"
+security_ssh_permit_empty_password: "no"
+security_ssh_challenge_response_auth: "no"
+security_ssh_gss_api_authentication: "no"
+security_ssh_x11_forwarding: "no"
+security_ssh_key: ""       # Public key for authorized_keys
+
+# Auto-updates
+security_autoupdate_enabled: true
+security_autoupdate_reboot: true
+security_autoupdate_reboot_time: "05:30"
+
+# Package Lists (overridable)
+initial_packages:
+  - apt-transport-https
+  - software-properties-common
+  - ca-certificates
+  - curl
+  - gnupg
+  - jq           # JSON parsing
+  - pwgen        # Password generation
+  - acl          # Access control lists
+
+common_packages:
+  - zsh
+  - vim
+  - git
+  - htop
+  - ncdu         # Disk usage analyzer
+  - tmux         # Terminal multiplexer
+  - lsof         # List open files
+  - zip
+  - unzip
+  - ufw
+  - unattended-upgrades
+
+# Sysctl Settings
+sysctl_settings:
+  - { key: 'vm.max_map_count', value: '262144' }
+  - { key: 'fs.file-max', value: '1000000' }
+  - { key: 'fs.inotify.max_user_watches', value: '1000000' }
+  - { key: 'net.core.rmem_max', value: '8388608' }
+  - { key: 'net.core.rmem_default', value: '8388608' }
+  - { key: 'net.core.wmem_max', value: '8388608' }
+  - { key: 'net.core.wmem_default', value: '8388608' }
+
+# Docker Configuration
+docker_daemon_config:
+  live-restore: true
+  userland-proxy: true
+  no-new-privileges: true
+  default-ulimits:
+    nofile:
+      Name: nofile
+      Hard: 64000
+      Soft: 64000
+  icc: true
+  default-address-pools:
+    - { base: "172.80.0.0/16", size: 24 }
+    - { base: "172.90.0.0/16", size: 24 }
