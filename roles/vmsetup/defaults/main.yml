@@ -26,7 +26,7 @@ security_autoupdate_reboot_time: "05:30"
 initial_packages:
   - python3             # Required for Ansible remote management
   - python3-apt         # Required for Ansible apt module
-  - phyton3-pip
+  - python3-pip
   - apt-transport-https
   - software-properties-common
   - ca-certificates
