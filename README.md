@@ -16,17 +16,17 @@ Ansible playbook to setup an Ubuntu VM with Docker. Runs on localhost, idempoten
 ## Quick Start
 
 ```bash
-git clone git@github.com:laurnts/vmfordockercontainer.git
-cd vmfordockercontainer
-cp group_vars/all.example.yml group_vars/all.yml  # Create your config
-nano group_vars/all.yml  # Edit configuration
-sh install.sh
+git clone https://github.com/laurnts/vmfordockercontainer.git
 ```
-
-Or run directly:
-
 ```bash
-ansible-playbook playbook.yml
+cd vmfordockercontainer
+cp group_vars/all.example.yml group_vars/all.yml
+```
+```bash
+nano group_vars/all.yml  # Edit configuration
+```
+```bash
+sh install.sh
 ```
 
 ## Configuration
